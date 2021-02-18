@@ -10,6 +10,34 @@ MUTATION_RATE = 0.015
 ELITE_SIZE = 1
 GENE_LENGTH = 69
 
+# Dictionaries to convert genotype to phenotype
+LEARNING_RATE_DICT = {
+    0: 1 * 10 ** (-5), 1: 5 * 10 ** (-5),
+    2: 1 * 10 ** (-4), 3: 5 * 10 ** (-4),
+    4: 1 * 10 ** (-3), 5: 5 * 10 ** (-3),
+    6: 1 * 10 ** (-2), 7: 5 * 10 ** (-2),
+}
+
+DENSE_TYPE_DICT = {
+    0: "recurrent", 1: "LSTM", 2: "GRU", 3: "feed-forward"
+}
+
+REGULARIZATION_DICT = {
+    0: "l1", 1: "l2", 2: "l1l2", 3: None
+}
+
+OPTIMIZER_DICT = {
+    0: "", 1: "",
+    2: "", 3: "",
+    4: "", 5: "",
+    6: "", 7: "",
+}
+
+ACTIVATION_DICT = {
+    0: "relu",
+    1: "linear"
+}
+
 def tournament_selection(population):
     selected, max_fitness = None, 0
     for i in range(TOURNAMENT_SIZE):
@@ -40,6 +68,8 @@ def crossover(parent1, parent2):
 def calculate_ajusted_fitness(fitness):
     pass
 
+def binary_to_decimal(bits):
+    return int("".join(map(str, bits)), 2)
 
 class Individual(object):
     def __init__(self, *args):
@@ -59,61 +89,105 @@ class Individual(object):
             self.gene[i] = int(not self.gene[i]) if odd else self.gene[i]
 
     def get_convol_layers_num(self):
-        pass
+        return 1 + binary_to_decimal(self.gene[2:4])
 
-    def get_kernels_num(self):
-        pass
+    def get_kernels_num(self, layers_num):
+        result = []
+        for i in range(layers_num):
+            binary = self.gene[4 + i * 10: 4 + i * 10 + 3]
+            result.append(2 ** (binary_to_decimal(binary) + 1))
+        return result
 
-    def get_kernel_sizes(self):
-        pass
+    def get_kernel_sizes(self, layers_num):
+        result = []
+        for i in range(layers_num):
+            binary = self.gene[7 + i * 10: 7 + i * 10 + 3]
+            result.append(2 + binary_to_decimal(binary))
+        return result
 
-    def get_pooling(self):
-        pass
+    def get_pooling(self, layers_num):
+        result = []
+        for i in range(layers_num):
+            binary = self.gene[10 + i * 10: 10 + i * 10 + 3]
+            result.append(1 + binary_to_decimal(binary))
+        return result
 
-    def get_convol_activation(self):
-        pass
+    def get_convol_activation(self, layers_num):
+        result = []
+        for i in range(layers_num):
+            binary = self.gene[13 + i * 10: 13 + i * 10 + 1]
+            result.append(ACTIVATION_DICT[binary_to_decimal(binary))
+        return result
 
     def get_dense_layers_num(self):
-        pass
+        return 1 + binary_to_decimal(self.gene[44])
 
-    def get_dense_type(self):
-        pass
+    def get_dense_type(self, layers_num):
+        result = []
+        for i in range(layers_num):
+            binary = self.gene[45 + i * 9: 45 + i * 9 + 2]
+            result.append(DENSE_TYPE_DICT[binary_to_decimal(binary)])
+        return result
 
-    def get_neurons_num(self):
-        pass
+    def get_neurons_num(self, layers_num):
+        result = []
+        for i in range(layers_num):
+            binary = self.gene[47 + i * 9: 47 + i * 9 + 3]
+            result.append(2 ** (binary_to_decimal(binary) + 3))
+        return result
 
-    def get_dense_activation(self):
-        pass
+    def get_dense_activation(self, layers_num):
+        result = []
+        for i in range(layers_num):
+            binary = self.gene[50 + i * 9: 50 + i * 9 + 1]
+            result.append(ACTIVATION_DICT[binary_to_decimal(binary))
+        return result
+
+    def get_regularization(self, layers_num):
+        result = []
+        for i in range(layers_num):
+            binary = self.gene[51 + i * 9: 51 + i * 9 + 2]
+            result.append(2 ** (binary_to_decimal(binary) + 1))
+        return result
 
     def get_dropout(self):
-        pass
-
-    def get_regularization(self):
-        pass
+        result = []
+        for i in range(layers_num):
+            binary = self.gene[53 + i * 9: 53 + i * 9 + 1]
+            result.append(binary_to_decimal(binary) / 2)
+        return result
 
     def get_optimizer(self):
-        pass
+        result = []
+        for i in range(layers_num):
+            binary = self.gene[63: 66]
+            result.append(OPTIMIZER_DICT[binary_to_decimal(binary)])
+        return result
 
     def get_learning_rate(self):
-        pass
+        result = []
+        for i in range(layers_num):
+            binary = self.gene[66: 69]
+            result.append(LEARNING_RATE_DICT[binary_to_decimal(binary)])
+        return result
 
     def get_components(self):
         dct = {}
 
         # Convolutional layers
         dct["nc"] = self.get_convol_layers_num()
-        dct["ck"] = self.get_kernels_num()
-        dct["cs"] = self.get_kernel_sizes()
-        dct["cp"] = self.get_pooling()
-        dct["ca"] = self.get_convol_activation()
+        dct["ck"] = self.get_kernels_num(dct["nc"])
+        dct["cs"] = self.get_kernel_sizes(dct["nc"])
+        dct["cp"] = self.get_pooling(dct["nc"])
+        dct["ca"] = self.get_convol_activation(dct["nc"])
 
         # Dense layers
         dct["nd"] = self.get_dense_layers_num()
-        dct["dt"] = self.get_dense_type()
-        dct["dn"] = self.get_neurons_num()
-        dct["da"] = self.get_dense_activation()
-        dct["dr"] = self.get_dropout()
-        dct["dd"] = self.get_regularization()
+        dct["dt"] = self.get_dense_type(dct["nd"])
+        dct["dn"] = self.get_neurons_num(dct["nd"])
+        dct["da"] = self.get_dense_activation(dct["nd"])
+        dct["dr"] = self.get_dropout(dct["nd"])
+        dct["dd"] = self.get_regularization(dct["nd"])
 
         # Learning parameters
         dct["n"] = self.get_learning_rate()
