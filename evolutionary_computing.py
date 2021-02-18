@@ -262,12 +262,16 @@ class Tracker(object):
         return self.best_individual
 
     def update_elitism(self, population):
+        self.population_history.append(population)
         best, _max = None, 0
         for individual in population:
             if individual.fitness > _max:
                 best, _max = individual, individual.fitness
         self.best_individual = best
         self.best_fitness.append(_max)
+
+    def print(self):
+        print(self.best_fitness)
 
 
 class Population(object):
@@ -290,7 +294,8 @@ class Population(object):
 
     def print(self):
         for individual in self.populace:
-            print(individual.to_string())
+            print(individual.to_string(), end = " ")
+            print(individual.fitness, individual.adjusted_fitness)
 
 
 population = Population()
@@ -346,3 +351,5 @@ for i in range(MAXIMUM_GENERATION):
     # Got 30 generations without improvements
     if tracker.stop_condition():
         break
+
+tracker.print()
