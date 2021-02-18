@@ -27,10 +27,10 @@ REGULARIZATION_DICT = {
 }
 
 OPTIMIZER_DICT = {
-    0: "", 1: "",
-    2: "", 3: "",
-    4: "", 5: "",
-    6: "", 7: "",
+    0: "", 1: "4",
+    2: "1", 3: "5",
+    4: "2", 5: "6",
+    6: "3", 7: "7",
 }
 
 ACTIVATION_DICT = {
@@ -65,8 +65,57 @@ def crossover(parent1, parent2):
     children2 = Individual(gene2)
     return children1, children2
 
-def calculate_ajusted_fitness(fitness):
-    pass
+def count_same_element(array1, array2):
+    return [array1[i] == array2[i] for i in range(len(array1))].count(True)
+
+def get_similarity(individual1, individual2):
+    nc1 = individual1.get_convol_layers_num()
+    nc2 = individual2.get_convol_layers_num()
+    nd1 = individual1.get_dense_layers_num()
+    nd2 = individual2.get_dense_layers_num()
+    if nc1 == nc2 and nd1 == nd2:
+        properies_num = nc1 * 4 + nd1 * 5 + 2
+        same_count = 0
+
+        f1, f2 = individual1.get_optimizer(), individual2.get_optimizer()
+        if f1 == f2:
+            same_count += 1
+        n1 = individual1.get_learning_rate()
+        n2 = individual1.get_learning_rate()
+        if n1 == n2:
+            same_count += 1
+
+        ck1 = individual1.get_kernels_num(nc1)
+        ck2 = individual2.get_kernels_num(nc2)
+        same_count += count_same_element(ck1, ck2)
+        cs1 = individual1.get_kernel_sizes(nc1)
+        cs2 = individual2.get_kernel_sizes(nc2)
+        same_count += count_same_element(cs1, cs2)
+        cp1 = individual1.get_pooling(nc1)
+        cp2 = individual2.get_pooling(nc2)
+        same_count += count_same_element(cp1, cp2)
+        ca1 = individual1.get_convol_activation(nc1)
+        ca2 = individual2.get_convol_activation(nc2)
+        same_count += count_same_element(ca1, ca2)
+
+        dt1 = individual1.get_dense_type(nd1)
+        dt2 = individual2.get_dense_type(nd2)
+        same_count += count_same_element(dt1, dt2)
+        dn1 = individual1.get_neurons_num(nd1)
+        dn2 = individual2.get_neurons_num(nd2)
+        same_count += count_same_element(dn1, dn2)
+        da1 = individual1.get_dense_activation(nd1)
+        da2 = individual2.get_dense_activation(nd2)
+        same_count += count_same_element(da1, da2)
+        dr1 = individual1.get_regularization(nd1)
+        dr2 = individual2.get_regularization(nd2)
+        same_count += count_same_element(dr1, dr2)
+        dd1 = individual1.get_dropout(nd1)
+        dd2 = individual2.get_dropout(nd2)
+        same_count += count_same_element(dd1, dd2)
+        return same_count / properies_num
+    else:
+        return 0
 
 def binary_to_decimal(bits):
     return int("".join(map(str, bits)), 2)
@@ -81,7 +130,6 @@ class Individual(object):
     def evaluate(self):
         components = self.get_components()
         self.fitness = randint(0, 100)
-        self.adjusted_fitness = calculate_ajusted_fitness(self.fitness)
 
     def mutate(self):
         for i in range(GENE_LENGTH):
@@ -116,11 +164,11 @@ class Individual(object):
         result = []
         for i in range(layers_num):
             binary = self.gene[13 + i * 10: 13 + i * 10 + 1]
-            result.append(ACTIVATION_DICT[binary_to_decimal(binary))
+            result.append(ACTIVATION_DICT[binary_to_decimal(binary)])
         return result
 
     def get_dense_layers_num(self):
-        return 1 + binary_to_decimal(self.gene[44])
+        return 1 + binary_to_decimal([self.gene[44]])
 
     def get_dense_type(self, layers_num):
         result = []
@@ -140,7 +188,7 @@ class Individual(object):
         result = []
         for i in range(layers_num):
             binary = self.gene[50 + i * 9: 50 + i * 9 + 1]
-            result.append(ACTIVATION_DICT[binary_to_decimal(binary))
+            result.append(ACTIVATION_DICT[binary_to_decimal(binary)])
         return result
 
     def get_regularization(self, layers_num):
@@ -150,7 +198,7 @@ class Individual(object):
             result.append(2 ** (binary_to_decimal(binary) + 1))
         return result
 
-    def get_dropout(self):
+    def get_dropout(self, layers_num):
         result = []
         for i in range(layers_num):
             binary = self.gene[53 + i * 9: 53 + i * 9 + 1]
@@ -159,16 +207,14 @@ class Individual(object):
 
     def get_optimizer(self):
         result = []
-        for i in range(layers_num):
-            binary = self.gene[63: 66]
-            result.append(OPTIMIZER_DICT[binary_to_decimal(binary)])
+        binary = self.gene[63: 66]
+        result.append(OPTIMIZER_DICT[binary_to_decimal(binary)])
         return result
 
     def get_learning_rate(self):
         result = []
-        for i in range(layers_num):
-            binary = self.gene[66: 69]
-            result.append(LEARNING_RATE_DICT[binary_to_decimal(binary)])
+        binary = self.gene[66: 69]
+        result.append(LEARNING_RATE_DICT[binary_to_decimal(binary)])
         return result
 
     def get_components(self):
@@ -231,6 +277,17 @@ class Population(object):
         else: # Create a population from text file
             file_name = args[0]
 
+    def calculate_ajusted_fitness(self):
+        for i in range(POPULATION_SIZE):
+            similarity_sum = 0
+            for j in range(POPULATION_SIZE):
+                if j != i:
+                    sim = get_similarity(self.populace[i], self.populace[j])
+                    similarity_sum += sim
+            similarity = 1 - (similarity_sum / (POPULATION_SIZE - 1))
+            self.populace[i].adjusted_fitness = self.populace[i].fitness
+            self.populace[i].adjusted_fitness *= similarity
+
     def print(self):
         for individual in self.populace:
             print(individual.to_string())
@@ -245,6 +302,7 @@ for i in range(POPULATION_SIZE):
     while population.populace[i].fitness == 0:
         population.populace[i] = Individual()
         population.populace[i].evaluate()
+population.calculate_ajusted_fitness()
 
 tracker = Tracker()
 tracker.update_elitism(population.populace)
@@ -280,6 +338,7 @@ for i in range(MAXIMUM_GENERATION):
     next_generation.append(tracker.elitism())
 
     population.populace = next_generation
+    population.calculate_ajusted_fitness()
     tracker.update_elitism(population.populace)
     tracker.generation_count += 1
     population.print()
