@@ -34,10 +34,10 @@ model.add(layers.Dropout(0.5))
 
 model.summary()
 
-model.compile(
-    optimizer=optimizers.Adagrad(learning_rate=0.05),
-    loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
-    metrics=['accuracy'])
-model.fit(x_train, y_train, epochs=100, validation_data=(x_test, y_test), batch_size=15)
-_, test_acc = model.evaluate(x_test,  y_test, verbose = 2)
-print("Result:", test_acc)
+# model.compile(
+#     optimizer=optimizers.Adagrad(learning_rate=0.05),
+#     loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
+#     metrics=['accuracy'])
+# model.fit(x_train, y_train, epochs=100, validation_data=(x_test, y_test), batch_size=15)
+# _, test_acc = model.evaluate(x_test,  y_test, verbose = 2)
+# print("Result:", test_acc)

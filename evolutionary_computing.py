@@ -1,4 +1,5 @@
 from random import randint, random
+from convolutional_neural_network import CNN
 
 POPULATION_SIZE = 50
 MAXIMUM_GENERATION = 100
@@ -129,7 +130,7 @@ class Individual(object):
 
     def evaluate(self):
         components = self.get_components()
-        self.fitness = randint(0, 100)
+        self.fitness = cnn.evaluate(components)
 
     def mutate(self):
         for i in range(GENE_LENGTH):
@@ -297,13 +298,14 @@ class Population(object):
             print(individual.to_string(), end = " ")
             print(individual.fitness, individual.adjusted_fitness)
 
-
+cnn = CNN()
 population = Population()
 
 # Remove all invalid individual (invalid CNN model structure)
 for i in range(POPULATION_SIZE):
     population.populace[i].evaluate()
     while population.populace[i].fitness == 0:
+        print("Re-initialize")
         population.populace[i] = Individual()
         population.populace[i].evaluate()
 population.calculate_ajusted_fitness()
