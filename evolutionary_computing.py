@@ -299,7 +299,6 @@ class Population(object):
 
 
 population = Population()
-# population.print()
 
 # Remove all invalid individual (invalid CNN model structure)
 for i in range(POPULATION_SIZE):
@@ -312,8 +311,10 @@ population.calculate_ajusted_fitness()
 tracker = Tracker()
 tracker.update_elitism(population.populace)
 
+population.print()
+
 # Population evolution
-for i in range(MAXIMUM_GENERATION):
+for i in range(1, MAXIMUM_GENERATION):
     print("Generation", i)
 
     # Create parent pool for mating by tournament selection
