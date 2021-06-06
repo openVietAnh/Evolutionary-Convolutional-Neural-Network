@@ -10,6 +10,9 @@ MAX_POINTS = 10 # Maximum number of points in multipoints crossover
 MUTATION_RATE = 0.015
 ELITE_SIZE = 1
 GENE_LENGTH = 69
+READ_DATA_FILE = "" # Using file to backup data from Google Colab, run with multiple sessions
+# READ_DATA_FILE = "" -> first session, new initialization
+WRITE_DATA_FILE = "SAVED_SESSION_DATA.txt" # In new session, upload files containing data from previous ones
 
 # Dictionaries to convert genotype to phenotype
 LEARNING_RATE_DICT = {
@@ -41,11 +44,12 @@ ACTIVATION_DICT = {
 
 def tournament_selection(population):
     selected, max_fitness = None, 0
-    for i in range(TOURNAMENT_SIZE):
-        contestant = population[randint(0, POPULATION_SIZE - 1)]
-        if contestant.adjusted_fitness > max_fitness:
-            selected = contestant
-            max_fitness = contestant.adjusted_fitness
+    while selected is None:
+        for i in range(TOURNAMENT_SIZE):
+            contestant = population[randint(0, POPULATION_SIZE - 1)]
+            if contestant.adjusted_fitness > max_fitness:
+                selected = contestant
+                max_fitness = contestant.adjusted_fitness
     return selected
 
 def crossover(parent1, parent2):
@@ -254,7 +258,7 @@ class Tracker(object):
         self.best_individual = None
 
     def stop_condition(self):
-        if self.generation_count >= 30:
+        if self.generation_count >= STOP_CONDITION:
             if self.best_fitness[-1] == self.best_fitness[-30]:
                 return True
         return False
@@ -263,7 +267,11 @@ class Tracker(object):
         return self.best_individual
 
     def update_elitism(self, population):
-        self.population_history.append(population)
+        # self.population_history.append(list(population))
+        generation = []
+        for individual in population:
+            generation.append(" ".join(["".join(map(str, individual.gene)), str(individual.fitness), str(individual.adjusted_fitness)]) + "\n")
+        self.population_history.append(generation)
         best, _max = None, 0
         for individual in population:
             if individual.fitness > _max:
@@ -298,25 +306,54 @@ class Population(object):
             print(individual.to_string(), end = " ")
             print(individual.fitness, individual.adjusted_fitness)
 
+def read_data_from_file(file_name):
+    population = None
+    tracker = None
+    return population, tracker
+
+def save_data_to_file(population, tracker):
+    text_lines = []
+    text_lines.append("CURRENT POPULATION\n")
+    for individual in population.populace:
+        text_lines.append(" ".join(["".join(map(str, individual.gene)), str(individual.fitness), str(individual.adjusted_fitness)]) + "\n")
+    text_lines.append("TRACKER INFO\n")
+    text_lines.append(str(tracker.generation_count) + "\n")
+    text_lines.append(" ".join(map(str, tracker.best_fitness)) + "\n")
+    best_ind = tracker.best_individual
+    text_lines.append(" ".join(["".join(map(str, individual.gene)), str(individual.fitness), str(individual.adjusted_fitness)]) + "\n")
+    text_lines.append("POPULATION HISTORY")
+    for index, generation in enumerate(tracker.population_history):
+        text_lines.append("\tGeneration " + str(index) + "\n")
+        for individual in generation:
+            text_lines.append(individual)
+
+    with open(WRITE_DATA_FILE, "w") as f:
+        f.writelines(text_lines)
+
 cnn = CNN()
-population = Population()
 
-# Remove all invalid individual (invalid CNN model structure)
-for i in range(POPULATION_SIZE):
-    population.populace[i].evaluate()
-    while population.populace[i].fitness == 0:
-        print("Re-initialize")
-        population.populace[i] = Individual()
+if READ_DATA_FILE == "":
+    population = Population()
+
+    # Remove all invalid individual (invalid CNN model structure)
+    for i in range(POPULATION_SIZE):
         population.populace[i].evaluate()
-population.calculate_ajusted_fitness()
+        while population.populace[i].fitness == 0:
+            # print("Re-initialize")
+            population.populace[i] = Individual()
+            population.populace[i].evaluate()
+    population.calculate_ajusted_fitness()
 
-tracker = Tracker()
-tracker.update_elitism(population.populace)
+    tracker = Tracker()
+    tracker.update_elitism(population.populace)
+else:
+    population, tracker = read_data_from_file(READ_DATA_FILE)
 
+print("Generation 0")
 population.print()
 
 # Population evolution
-for i in range(1, MAXIMUM_GENERATION):
+for i in range(tracker.generation_count, tracker.generation_count + 10):
     print("Generation", i)
 
     # Create parent pool for mating by tournament selection
@@ -355,4 +392,5 @@ for i in range(1, MAXIMUM_GENERATION):
     if tracker.stop_condition():
         break
 
+save_data_to_file(population, tracker)
 tracker.print()
