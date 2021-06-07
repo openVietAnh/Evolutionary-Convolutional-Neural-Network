@@ -129,8 +129,12 @@ class Individual(object):
     def __init__(self, *args):
         if not args: # New initialization from start
             self.gene = [randint(0, 1) for i in range(GENE_LENGTH)]
+        elif len(args) == 1:
+            self.gene = args[0]
         else:
             self.gene = args[0]
+            self.fitness = args[1]
+            self.adjusted_fitness = args[2]
 
     def evaluate(self):
         components = self.get_components()
@@ -251,11 +255,17 @@ class Individual(object):
 
 
 class Tracker(object):
-    def __init__(self):
-        self.generation_count = 1
-        self.best_fitness = []
-        self.population_history = []
-        self.best_individual = None
+    def __init__(self, *args):
+        if len(args) == 0:
+            self.generation_count = 1
+            self.best_fitness = []
+            self.population_history = []
+            self.best_individual = None
+        else:
+            self.generation_count = args[0]
+            self.best_fitness = args[1]
+            self.best_individual = args[2]
+            self.population_history = []
 
     def stop_condition(self):
         if self.generation_count >= STOP_CONDITION:
@@ -281,14 +291,15 @@ class Tracker(object):
 
     def print(self):
         print(self.best_fitness)
+        print(self.best_individual.gene, self.best_individual.fitness, self.best_individual.adjusted_fitness)
 
 
 class Population(object):
     def __init__(self, *args):
         if not args: # New initialization from start
             self.populace = [Individual() for i in range(POPULATION_SIZE)]
-        else: # Create a population from text file
-            file_name = args[0]
+        else: # Create a population from populace read from a text file
+            self.populace = args[0]  
 
     def calculate_ajusted_fitness(self):
         for i in range(POPULATION_SIZE):
@@ -304,11 +315,39 @@ class Population(object):
     def print(self):
         for individual in self.populace:
             print(individual.to_string(), end = " ")
-            print(individual.fitness, individual.adjusted_fitness)
+            # print(individual.fitness, individual.adjusted_fitness)
+            print(individual.fitness)
+
+def get_individual_info_from_string(line):
+    items = line.strip().split()
+    gene = list(map(int, list(items[0])))
+    fitness = float(items[1])
+    adjusted_fitness = float(items[2])
+    return gene, fitness, adjusted_fitness
 
 def read_data_from_file(file_name):
     population = None
     tracker = None
+    with open(READ_DATA_FILE, "r") as f:
+        data = f.readlines()
+
+    populace = []
+    for line in data[1: POPULATION_SIZE + 1]:
+        gene, fitness, adjusted_fitness = get_individual_info_from_string(line)
+        populace.append(Individual(gene, fitness, adjusted_fitness))
+    population = Population(populace)
+
+    tracker_info_index = data.index("TRACKER INFO\n")
+    generation_count = int(data[tracker_info_index + 1])
+    best_fitness = list(map(float, data[tracker_info_index + 2].split()))
+    gene, fitness, adjusted_fitness = get_individual_info_from_string(data[tracker_info_index + 3])
+    best_ind = Individual(gene, fitness, adjusted_fitness)
+    tracker = Tracker(generation_count, best_fitness, best_ind)
+    for i in range(0, generation_count):
+        line_ind = data.index("\tGeneration " + str(i) + "\n")
+        generation = data[line_ind + 1: line_ind + POPULATION_SIZE + 1]
+        tracker.population_history.append(generation)
+
     return population, tracker
 
 def save_data_to_file(population, tracker):
@@ -321,7 +360,7 @@ def save_data_to_file(population, tracker):
     text_lines.append(" ".join(map(str, tracker.best_fitness)) + "\n")
     best_ind = tracker.best_individual
     text_lines.append(" ".join(["".join(map(str, individual.gene)), str(individual.fitness), str(individual.adjusted_fitness)]) + "\n")
-    text_lines.append("POPULATION HISTORY")
+    text_lines.append("POPULATION HISTORY\n")
     for index, generation in enumerate(tracker.population_history):
         text_lines.append("\tGeneration " + str(index) + "\n")
         for individual in generation:
@@ -349,8 +388,9 @@ if READ_DATA_FILE == "":
 else:
     population, tracker = read_data_from_file(READ_DATA_FILE)
 
-print("Generation 0")
+print("Generation " + str(tracker.generation_count))
 population.print()
+tracker.print()
 
 # Population evolution
 for i in range(tracker.generation_count, tracker.generation_count + 10):
@@ -383,6 +423,7 @@ for i in range(tracker.generation_count, tracker.generation_count + 10):
     next_generation.append(tracker.elitism())
 
     population.populace = next_generation
+    population.print()
     population.calculate_ajusted_fitness()
     tracker.update_elitism(population.populace)
     tracker.generation_count += 1
