@@ -137,7 +137,6 @@ model15.add(layers.MaxPooling2D((3, 3)))
 # Dense layers
 
 # 1. Feed-forward -> feed-forward
-model.add(layers.Flatten())
 model.add(layers.Dense(120, activation='linear'))
 model.add(layers.Dense(60, activation='relu'))
 
