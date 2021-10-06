@@ -30,13 +30,6 @@ REGULARIZATION_DICT = {
     0: "l1", 1: "l2", 2: "l1l2", 3: None
 }
 
-OPTIMIZER_DICT = {
-    0: "", 1: "4",
-    2: "1", 3: "5",
-    4: "2", 5: "6",
-    6: "3", 7: "7",
-}
-
 ACTIVATION_DICT = {
     0: "relu",
     1: "linear"
@@ -145,6 +138,9 @@ class Individual(object):
             odd = random() <= 0.015
             self.gene[i] = int(not self.gene[i]) if odd else self.gene[i]
 
+    def get_batch_size(self):
+        return [25, 50, 100, 15][binary_to_decimal(self.gene[:2])]
+
     def get_convol_layers_num(self):
         return 1 + binary_to_decimal(self.gene[2:4])
 
@@ -215,19 +211,17 @@ class Individual(object):
         return result
 
     def get_optimizer(self):
-        result = []
         binary = self.gene[63: 66]
-        result.append(OPTIMIZER_DICT[binary_to_decimal(binary)])
-        return result
+        return binary_to_decimal(binary)
 
     def get_learning_rate(self):
-        result = []
         binary = self.gene[66: 69]
-        result.append(LEARNING_RATE_DICT[binary_to_decimal(binary)])
-        return result
+        return LEARNING_RATE_DICT[binary_to_decimal(binary)]
 
     def get_components(self):
         dct = {}
+
+        dct["b"] = self.get_batch_size()
 
         # Convolutional layers
         dct["nc"] = self.get_convol_layers_num()
@@ -241,8 +235,8 @@ class Individual(object):
         dct["dt"] = self.get_dense_type(dct["nd"])
         dct["dn"] = self.get_neurons_num(dct["nd"])
         dct["da"] = self.get_dense_activation(dct["nd"])
-        dct["dr"] = self.get_dropout(dct["nd"])
-        dct["dd"] = self.get_regularization(dct["nd"])
+        dct["dd"] = self.get_dropout(dct["nd"])
+        dct["dr"] = self.get_regularization(dct["nd"])
 
         # Learning parameters
         dct["n"] = self.get_learning_rate()
