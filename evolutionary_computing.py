@@ -200,7 +200,7 @@ class Individual(object):
         result = []
         for i in range(layers_num):
             binary = self.gene[51 + i * 9: 51 + i * 9 + 2]
-            result.append(2 ** (binary_to_decimal(binary) + 1))
+            result.append(binary_to_decimal(binary))
         return result
 
     def get_dropout(self, layers_num):

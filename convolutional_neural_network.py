@@ -8,6 +8,7 @@ from tensorflow.keras.utils import to_categorical
 
 import random
 
+tf.get_logger().setLevel('ERROR')
 INPUT_SHAPE = 28
 
 def load_data():
@@ -23,389 +24,391 @@ def load_data():
 
     return x_train, y_train, x_test, y_test
 
-def choose_data(self, x_train, y_train):
-    small_x, small_y = shuffle(x_train, y_train)
-    return small_x[:30000], small_y[:30000]
-
 class CNN(object):
     def __init__(self):
         self.x_train, self.y_train, self.x_test, self.y_test = load_data()
         self.rgl_dct = {
-            0: regularizers.L1,
-            1: regularizers.L2,
-            2: regularizers.L1L2,
+            0: regularizers.L1(1e-4),
+            1: regularizers.L2(1e-4),
+            2: regularizers.L1L2(l1=1e-4, l2=1e-4),
             3: None
         }
 
-    def get_dense_layers(self, components):
-        dense_layers = models.Sequential()
+    def choose_data(self):
+        small_x, small_y = shuffle(self.x_train, self.y_train)
+        return small_x[:30000], small_y[:30000]
+
+    def add_dense_layers(self, components, model):
+        new_model = model
         if components["nd"] == 1:
 
             if components["dt"][0] == "feed-forward":
-                dense_layers.add(
+                new_model.add(layers.Flatten())
+                new_model.add(
                     layers.Dense(components["dn"][0], 
                     kernel_regularizer=self.rgl_dct[components["dr"][0]], 
                     activation=components["da"][0]
                 ))
                 if components["dd"][0] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
+                    new_model.add(layers.Dropout(0.5))
 
             if components["dt"][0] == "recurrent":
-                last_output = dense_layers.layers[-1].output_shape
-                dense_layers.add(
+                last_output = new_model.layers[-1].output_shape
+                new_model.add(
                     tf.keras.layers.Reshape((last_output[1] * last_output[2], last_output[3]), 
                     input_shape=last_output
                 ))
-                dense_layers.add(layers.SimpleRNN(
+                new_model.add(layers.SimpleRNN(
                     components["dn"][0], 
                     kernel_regularizer=self.rgl_dct[components["dr"][0]],
                     activation=components["da"][0]
                 ))
                 if components["dd"][0] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
+                    new_model.add(layers.Dropout(0.5))
 
             if components["dt"][0] == "GRU":
-                last_output = dense_layers.layers[-1].output_shape
-                dense_layers.add(tf.keras.layers.Reshape((
+                last_output = new_model.layers[-1].output_shape
+                new_model.add(tf.keras.layers.Reshape((
                     last_output[1] * last_output[2], last_output[3]), 
                     input_shape=last_output
                 ))
-                dense_layers.add(layers.GRU(
+                new_model.add(layers.GRU(
                     components["dn"][0], 
                     kernel_regularizer=self.rgl_dct[components["dr"][0]],
                     activation=components["da"][0]
                 ))
                 if components["dd"][0] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
+                    new_model.add(layers.Dropout(0.5))
 
             if components["dt"][0] == "LSTM":
-                dense_layers.add(layers.TimeDistributed(layers.LSTM(
+                new_model.add(layers.TimeDistributed(layers.LSTM(
                     components["dn"][0],
                     kernel_regularizer=self.rgl_dct[components["dr"][0]], 
                     activation=components["da"][0]
                 )))
                 if components["dd"][0] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
-                dense_layers.add(layers.Flatten())
+                    new_model.add(layers.Dropout(0.5))
+                new_model.add(layers.Flatten())
         else:
 
             if components["dt"][0] == "feed-forward" and components["dt"][1] == "feed-forward":
-                dense_layers.add(layers.Dense(
+                new_model.add(layers.Flatten())
+                new_model.add(layers.Dense(
                     components["dn"][0], 
                     kernel_regularizer=self.rgl_dct[components["dr"][0]],
                     activation=components["da"][0]))
                 if components["dd"][0] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
-                dense_layers.add(layers.Dense(
+                    new_model.add(layers.Dropout(0.5))
+                new_model.add(layers.Dense(
                     components["dn"][1], 
                     kernel_regularizer=self.rgl_dct[components["dr"][1]],
                     activation=components["da"][1]))
                 if components["dd"][1] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
+                    new_model.add(layers.Dropout(0.5))
 
             if components["dt"][0] == "feed-forward" and components["dt"][1] == "recurrent":
-                dense_layers.add(layers.Flatten())
-                dense_layers.add(layers.Dense(
+                new_model.add(layers.Flatten())
+                new_model.add(layers.Dense(
                     components["dn"][0],
                     kernel_regularizer=self.rgl_dct[components["dr"][0]], 
                     activation=components["da"][0]
                 ))
                 if components["dd"][0] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
-                last_shape = dense_layers.layers[-1].output_shape
-                dense_layers.add(tf.keras.layers.Reshape((
+                    new_model.add(layers.Dropout(0.5))
+                last_shape = new_model.layers[-1].output_shape
+                new_model.add(tf.keras.layers.Reshape((
                     last_shape[1] // 2, 2), 
                     input_shape=last_shape
                 ))
-                dense_layers.add(layers.SimpleRNN(
+                new_model.add(layers.SimpleRNN(
                     components["dn"][1],
                     kernel_regularizer=self.rgl_dct[components["dr"][1]],
                     activation=components["da"][1]
                 ))
                 if components["dd"][1] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
+                    new_model.add(layers.Dropout(0.5))
 
             if components["dt"][0] == "feed-forward" and components["dt"][1] == "GRU":
-                dense_layers.add(layers.Dense(
+                new_model.add(layers.Dense(
                     components["dn"][0], 
                     kernel_regularizer=self.rgl_dct[components["dr"][0]],
                     activation=components["da"][0]
                 ))
                 if components["dd"][0] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
-                last_shape = dense_layers.layers[-1].output_shape
-                dense_layers.add(tf.keras.layers.Reshape((
+                    new_model.add(layers.Dropout(0.5))
+                last_shape = new_model.layers[-1].output_shape
+                new_model.add(tf.keras.layers.Reshape((
                     last_shape[1] * last_shape[2], last_shape[3]), 
                     input_shape=last_shape
                 ))
-                dense_layers.add(layers.GRU(
+                new_model.add(layers.GRU(
                     components["dn"][1], 
                     kernel_regularizer=self.rgl_dct[components["dr"][1]],
                     activation=components["da"][0]
                 ))
                 if components["dd"][1] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
+                    new_model.add(layers.Dropout(0.5))
 
             if components["dt"][0] == "feed-forward" and components["dt"][1] == "LSTM":
-                dense_layers.add(layers.Dense(
+                new_model.add(layers.Dense(
                     components["dn"][0],
                     kernel_regularizer=self.rgl_dct[components["dr"][0]], 
                     activation=components["da"][0]
                 ))
                 if components["dd"][0] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
-                dense_layers.add(layers.TimeDistributed(layers.LSTM(
+                    new_model.add(layers.Dropout(0.5))
+                new_model.add(layers.TimeDistributed(layers.LSTM(
                     components["dn"][1],
                     kernel_regularizer=self.rgl_dct[components["dr"][1]], 
                     activation=components["da"][1]
                 )))
                 if components["dd"][1] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
-                dense_layers.add(layers.Flatten())
+                    new_model.add(layers.Dropout(0.5))
+                new_model.add(layers.Flatten())
 
             if components["dt"][0] == "recurrent" and components["dt"][1] == "feed-forward":
-                last_shape = dense_layers.layers[-1].output_shape
-                dense_layers.add(tf.keras.layers.Reshape(
+                last_shape = new_model.layers[-1].output_shape
+                new_model.add(tf.keras.layers.Reshape(
                     (last_shape[1] * last_shape[2], last_shape[3]), 
                     input_shape=last_shape
                 ))
-                dense_layers.add(layers.SimpleRNN(
+                new_model.add(layers.SimpleRNN(
                     components["dn"][0],
                     kernel_regularizer=self.rgl_dct[components["dr"][0]], 
                     activation=components["da"][0]
                 ))
                 if components["dd"][0] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
-                dense_layers.add(layers.Dense(
+                    new_model.add(layers.Dropout(0.5))
+                new_model.add(layers.Dense(
                     components["dn"][1],
                     kernel_regularizer=self.rgl_dct[components["dr"][1]], 
                     activation=components["da"][1]
                 ))
                 if components["dd"][1] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
+                    new_model.add(layers.Dropout(0.5))
 
             if components["dt"][0] == "recurrent" and components["dt"][1] == "recurrent":
-                last_shape = dense_layers.layers[-1].output_shape
-                dense_layers.add(tf.keras.layers.Reshape(
+                last_shape = new_model.layers[-1].output_shape
+                new_model.add(tf.keras.layers.Reshape(
                     (last_shape[1] * last_shape[2], last_shape[3]), 
                     input_shape=last_shape
                 ))
-                dense_layers.add(layers.SimpleRNN(
+                new_model.add(layers.SimpleRNN(
                     components["dn"][0],
                     kernel_regularizer=self.rgl_dct[components["dr"][0]], 
                     activation=components["da"][0],
                     return_sequences=True
                 ))
                 if components["dd"][0] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
-                dense_layers.add(layers.SimpleRNN(
+                    new_model.add(layers.Dropout(0.5))
+                new_model.add(layers.SimpleRNN(
                     components["dn"][1],
                     kernel_regularizer=self.rgl_dct[components["dr"][1]], 
                     activation=components["da"][1]
                 ))
                 if components["dd"][1] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
+                    new_model.add(layers.Dropout(0.5))
 
             if components["dt"][0] == "recurrent" and components["dt"][1] == "GRU":
-                last_shape = dense_layers.layers[-1].output_shape
-                dense_layers.add(tf.keras.layers.Reshape(
+                last_shape = new_model.layers[-1].output_shape
+                new_model.add(tf.keras.layers.Reshape(
                     (last_shape[1] * last_shape[2], last_shape[3]), 
                     input_shape=last_shape
                 ))
-                dense_layers.add(layers.SimpleRNN(
+                new_model.add(layers.SimpleRNN(
                     components["dn"][0],
                     kernel_regularizer=self.rgl_dct[components["dr"][0]], 
                     activation=components["da"][0],
                     return_sequences=True
                 ))
                 if components["dd"][0] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
-                dense_layers.add(layers.GRU(
+                    new_model.add(layers.Dropout(0.5))
+                new_model.add(layers.GRU(
                     components["dn"][1],
                     kernel_regularizer=self.rgl_dct[components["dr"][1]], 
                     activation=components["da"][1]
                 ))
                 if components["dd"][1] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
+                    new_model.add(layers.Dropout(0.5))
 
             if components["dt"][0] == "recurrent" and components["dt"][1] == "LSTM":
-                last_shape = dense_layers.layers[-1].output_shape
-                dense_layers.add(tf.keras.layers.Reshape(
+                last_shape = new_model.layers[-1].output_shape
+                new_model.add(tf.keras.layers.Reshape(
                     (last_shape[1] * last_shape[2], last_shape[3]), 
                     input_shape=last_shape
                 ))
-                dense_layers.add(layers.SimpleRNN(
+                new_model.add(layers.SimpleRNN(
                     components["dn"][0],
                     kernel_regularizer=self.rgl_dct[components["dr"][0]], 
                     activation=components["da"][0],
                     return_sequences=True
                 ))
                 if components["dd"][0] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
-                dense_layers.add(layers.LSTM(
+                    new_model.add(layers.Dropout(0.5))
+                new_model.add(layers.LSTM(
                     components["dn"][1],
                     kernel_regularizer=self.rgl_dct[components["dr"][1]], 
                     activation=components["da"][1]
                 ))
                 if components["dd"][1] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
+                    new_model.add(layers.Dropout(0.5))
 
             if components["dt"][0] == "GRU" and components["dt"][1] == "feed-forward":
-                last_shape = dense_layers.layers[-1].output_shape
-                dense_layers.add(tf.keras.layers.Reshape(
+                last_shape = new_model.layers[-1].output_shape
+                new_model.add(tf.keras.layers.Reshape(
                     (last_shape[1] * last_shape[2], last_shape[3]), 
                     input_shape=last_shape
                 ))
-                dense_layers.add(layers.GRU(
+                new_model.add(layers.GRU(
                     components["dn"][0],
                     kernel_regularizer=self.rgl_dct[components["dr"][0]], 
                     activation=components["da"][0],
                 ))
                 if components["dd"][0] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
-                dense_layers.add(layers.Dense(
+                    new_model.add(layers.Dropout(0.5))
+                new_model.add(layers.Dense(
                     components["dn"][1],
                     kernel_regularizer=self.rgl_dct[components["dr"][1]], 
                     activation=components["da"][1]
                 ))
                 if components["dd"][1] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
+                    new_model.add(layers.Dropout(0.5))
 
             if components["dt"][0] == "GRU" and components["dt"][1] == "recurrent":
-                last_shape = dense_layers.layers[-1].output_shape
-                dense_layers.add(tf.keras.layers.Reshape(
+                last_shape = new_model.layers[-1].output_shape
+                new_model.add(tf.keras.layers.Reshape(
                     (last_shape[1] * last_shape[2], last_shape[3]), 
                     input_shape=last_shape
                 ))
-                dense_layers.add(layers.GRU(
+                new_model.add(layers.GRU(
                     components["dn"][0],
                     kernel_regularizer=self.rgl_dct[components["dr"][0]], 
                     activation=components["da"][0],
                     return_sequences=True
                 ))
                 if components["dd"][0] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
-                dense_layers.add(layers.SimpleRNN(
+                    new_model.add(layers.Dropout(0.5))
+                new_model.add(layers.SimpleRNN(
                     components["dn"][1],
                     kernel_regularizer=self.rgl_dct[components["dr"][1]], 
                     activation=components["da"][1]
                 ))
                 if components["dd"][1] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
+                    new_model.add(layers.Dropout(0.5))
 
             if components["dt"][0] == "GRU" and components["dt"][1] == "GRU":
-                last_shape = dense_layers.layers[-1].output_shape
-                dense_layers.add(tf.keras.layers.Reshape(
+                last_shape = new_model.layers[-1].output_shape
+                new_model.add(tf.keras.layers.Reshape(
                     (last_shape[1] * last_shape[2], last_shape[3]), 
                     input_shape=last_shape
                 ))
-                dense_layers.add(layers.GRU(
+                new_model.add(layers.GRU(
                     components["dn"][0],
                     kernel_regularizer=self.rgl_dct[components["dr"][0]], 
                     activation=components["da"][0],
                     return_sequences=True
                 ))
                 if components["dd"][0] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
-                dense_layers.add(layers.GRU(
+                    new_model.add(layers.Dropout(0.5))
+                new_model.add(layers.GRU(
                     components["dn"][1],
                     kernel_regularizer=self.rgl_dct[components["dr"][1]], 
                     activation=components["da"][1]
                 ))
                 if components["dd"][1] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
+                    new_model.add(layers.Dropout(0.5))
 
             if components["dt"][0] == "GRU" and components["dt"][1] == "LSTM":
-                last_shape = dense_layers.layers[-1].output_shape
-                dense_layers.add(tf.keras.layers.Reshape(
+                last_shape = new_model.layers[-1].output_shape
+                new_model.add(tf.keras.layers.Reshape(
                     (last_shape[1] * last_shape[2], last_shape[3]), 
                     input_shape=last_shape
                 ))
-                dense_layers.add(layers.GRU(
+                new_model.add(layers.GRU(
                     components["dn"][0],
                     kernel_regularizer=self.rgl_dct[components["dr"][0]], 
                     activation=components["da"][0],
                     return_sequences=True
                 ))
                 if components["dd"][0] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
-                dense_layers.add(layers.LSTM(
+                    new_model.add(layers.Dropout(0.5))
+                new_model.add(layers.LSTM(
                     components["dn"][1],
                     kernel_regularizer=self.rgl_dct[components["dr"][1]], 
                     activation=components["da"][1]
                 ))
                 if components["dd"][1] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
+                    new_model.add(layers.Dropout(0.5))
 
             if components["dt"][0] == "LSTM" and components["dt"][1] == "feed-forward":
-                dense_layers.add(layers.TimeDistributed(layers.LSTM(
+                new_model.add(layers.TimeDistributed(layers.LSTM(
                     components["dn"][0],
                     kernel_regularizer=self.rgl_dct[components["dr"][0]], 
                     activation=components["da"][0],
                 )))
                 if components["dd"][0] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
-                dense_layers.add(layers.Flatten())
-                dense_layers.add(layers.Dense(
+                    new_model.add(layers.Dropout(0.5))
+                new_model.add(layers.Flatten())
+                new_model.add(layers.Dense(
                     components["dn"][1],
                     kernel_regularizer=self.rgl_dct[components["dr"][1]], 
                     activation=components["da"][1]
                 ))
                 if components["dd"][1] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
+                    new_model.add(layers.Dropout(0.5))
 
             if components["dt"][0] == "LSTM" and components["dt"][1] == "recurrent":
-                dense_layers.add(layers.TimeDistributed(layers.LSTM(
+                new_model.add(layers.TimeDistributed(layers.LSTM(
                     components["dn"][0],
                     kernel_regularizer=self.rgl_dct[components["dr"][0]], 
                     activation=components["da"][0],
                 )))
                 if components["dd"][0] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
-                dense_layers.add(layers.SimpleRNN(
+                    new_model.add(layers.Dropout(0.5))
+                new_model.add(layers.SimpleRNN(
                     components["dn"][1],
                     kernel_regularizer=self.rgl_dct[components["dr"][1]], 
                     activation=components["da"][1]
                 ))
                 if components["dd"][1] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
+                    new_model.add(layers.Dropout(0.5))
 
             if components["dt"][0] == "LSTM" and components["dt"][1] == "GRU":
-                dense_layers.add(layers.TimeDistributed(layers.LSTM(
+                new_model.add(layers.TimeDistributed(layers.LSTM(
                     components["dn"][0],
                     kernel_regularizer=self.rgl_dct[components["dr"][0]], 
                     activation=components["da"][0],
                 )))
                 if components["dd"][0] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
-                dense_layers.add(layers.GRU(
+                    new_model.add(layers.Dropout(0.5))
+                new_model.add(layers.GRU(
                     components["dn"][1],
                     kernel_regularizer=self.rgl_dct[components["dr"][1]], 
                     activation=components["da"][1]
                 ))
                 if components["dd"][1] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
+                    new_model.add(layers.Dropout(0.5))
 
             if components["dt"][0] == "LSTM" and components["dt"][1] == "LSTM":
-                dense_layers.add(layers.TimeDistributed(layers.LSTM(
+                new_model.add(layers.TimeDistributed(layers.LSTM(
                     components["dn"][0],
                     kernel_regularizer=self.rgl_dct[components["dr"][0]], 
                     activation=components["da"][0],
                 )))
                 if components["dd"][0] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
-                dense_layers.add(layers.LSTM(
+                    new_model.add(layers.Dropout(0.5))
+                new_model.add(layers.LSTM(
                     components["dn"][1],
                     kernel_regularizer=self.rgl_dct[components["dr"][1]], 
                     activation=components["da"][1]
                 ))
                 if components["dd"][1] == 0.5:
-                    dense_layers.add(layers.Dropout(0.5))
-                dense_layers.add(layers.Flatten())
+                    new_model.add(layers.Dropout(0.5))
+                new_model.add(layers.Flatten())
 
-        dense_layers.add(layers.Dense(10))
+        new_model.add(layers.Dense(10))
 
-        return dense_layers
+        return new_model
 
     def build_model(self, components):
         model = models.Sequential()
@@ -417,7 +420,7 @@ class CNN(object):
         ))
         model.add(layers.MaxPooling2D((components["cp"][0], components["cp"][0])))
 
-        for i in range(1, components["n_c"]):
+        for i in range(1, components["nc"]):
             model.add(layers.Conv2D(
                 components["ck"][i],
                 (components["cs"][i], components["cs"][i]),
@@ -425,7 +428,7 @@ class CNN(object):
             ))
             model.add(layers.MaxPooling2D((components["cp"][i], components["cp"][i])))
 
-        model.add(self.get_dense_layers(components))
+        model = self.add_dense_layers(components, model)
 
         return model
 
@@ -472,10 +475,12 @@ class CNN(object):
             model.compile(optimizer=opt,
                         loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
                         metrics=['accuracy'])
-            small_x, small_y = self.choose_data(self.x_train, self.y_train)
+            small_x, small_y = self.choose_data()
             batch_size = components["b"]
+            model.summary()
             model.fit(small_x, small_y, epochs=5, validation_data=(self.x_test, self.y_test), batch_size=batch_size, verbose = 0)
             _, test_acc = model.evaluate(self.x_test,  self.y_test, verbose = 0)
+            del model
             return test_acc
 
 
