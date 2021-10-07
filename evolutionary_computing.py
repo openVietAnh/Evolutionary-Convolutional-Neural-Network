@@ -10,7 +10,7 @@ MAX_POINTS = 10 # Maximum number of points in multipoints crossover
 MUTATION_RATE = 0.015
 ELITE_SIZE = 1
 GENE_LENGTH = 69
-READ_DATA_FILE = "" # Using file to backup data from Google Colab, run with multiple sessions
+READ_DATA_FILE = "SAVED_SESSION_DATA.txt" # Using file to backup data from Google Colab, run with multiple sessions
 # READ_DATA_FILE = "" -> first session, new initialization
 WRITE_DATA_FILE = "SAVED_SESSION_DATA.txt" # In new session, upload files containing data from previous ones
 
@@ -353,7 +353,7 @@ def save_data_to_file(population, tracker):
     text_lines.append(str(tracker.generation_count) + "\n")
     text_lines.append(" ".join(map(str, tracker.best_fitness)) + "\n")
     best_ind = tracker.best_individual
-    text_lines.append(" ".join(["".join(map(str, individual.gene)), str(individual.fitness), str(individual.adjusted_fitness)]) + "\n")
+    text_lines.append(" ".join(["".join(map(str, best_ind.gene)), str(best_ind.fitness), str(best_ind.adjusted_fitness)]) + "\n")
     text_lines.append("POPULATION HISTORY\n")
     for index, generation in enumerate(tracker.population_history):
         text_lines.append("\tGeneration " + str(index) + "\n")
@@ -387,8 +387,9 @@ population.print()
 tracker.print()
 
 # Population evolution
-for i in range(tracker.generation_count, tracker.generation_count + 10):
-    print("Generation", i)
+for i in range(tracker.generation_count, tracker.generation_count + 100):
+    # print("Generation", i)
+    print("".join(list(map(str, tracker.best_individual.gene))), tracker.best_individual.fitness)
 
     # Create parent pool for mating by tournament selection
     pool = []
@@ -417,7 +418,6 @@ for i in range(tracker.generation_count, tracker.generation_count + 10):
     next_generation.append(tracker.elitism())
 
     population.populace = next_generation
-    population.print()
     population.calculate_ajusted_fitness()
     tracker.update_elitism(population.populace)
     tracker.generation_count += 1
