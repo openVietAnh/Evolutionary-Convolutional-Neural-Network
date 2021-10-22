@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.utils import shuffle
 import tensorflow as tf
 from tensorflow.keras.datasets import mnist
-from tensorflow.keras import datasets, layers, models, regularizers, optimizers
+from tensorflow.keras import layers, models, regularizers, optimizers
 from tensorflow.keras.utils import to_categorical
 
 import random
