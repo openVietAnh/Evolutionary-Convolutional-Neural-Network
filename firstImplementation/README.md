@@ -34,8 +34,28 @@ https://drive.google.com/file/d/1047lqcn6PvH43mScO-CSqXvrR9O3ksJd/view?usp=shari
 # Implementation:
 ## File description
 EC process is ran in `evolutionary_computing.py` file.
+
 The file used CNN class in `convolutional_neural_network.py` file to evaluate individuals (models).
+
 `data_analysis.py` display charts to show insights from the result. Folder `resultImages` contains all the charts.
+
 `populationHistory.txt` show the evolve process throughout 87 generations. 
+
 `train_model.ipynb` used to fully train top 10 models.
+
 `test_top_10.ipynb` used to evaluate all fully trained top 10 models and also ensemble model.
+
+## Genetic Algorithm Information:
+Stop condition: 100 generation limit or 30 generations without improvement
+
+Number of individuals in the population: 50
+
+Mutation rate in individual's gene: 0.015
+
+Tournament size for parent selection: 3
+
+Elite set size: 1
+
+Number of points in multipoints crossover: from 3 to 10
+
+Population replacement: Keep the new offspring generation, delete worst individual then add the elite individual.
