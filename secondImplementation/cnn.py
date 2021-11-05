@@ -27,9 +27,9 @@ class CNN(object):
     def __init__(self):
         self.x_train, self.y_train, self.x_test, self.y_test = load_data()
         self.rgl_dct = {
-            0: regularizers.l1(1e-4),
-            1: regularizers.l2(1e-4),
-            2: regularizers.l1_l2(l1=1e-4, l2=1e-4),
+            0: regularizers.L1(1e-4),
+            1: regularizers.L2(1e-4),
+            2: regularizers.L1L2(l1=1e-4, l2=1e-4),
             3: None
         }
 
@@ -469,17 +469,16 @@ class CNN(object):
         if not self.is_valid_model(components["cs"], components["cp"]):
             return 0
         else:
-            # model = self.build_model(components)
-            # opt = self.get_optimizers(components["f"], components["n"])
-            # model.compile(optimizer=opt,
-            #             loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
-            #             metrics=['accuracy'])
-            # small_x, small_y = self.choose_data()
-            # batch_size = components["b"]
-            # model.fit(small_x, small_y, epochs=2, validation_data=(self.x_test, self.y_test), batch_size=batch_size, verbose=0)
-            # _, test_acc = model.evaluate(self.x_test,  self.y_test, verbose = 0)
-            # del model
-            # return test_acc
-            return random.randint(1, 10*1000)
+            model = self.build_model(components)
+            opt = self.get_optimizers(components["f"], components["n"])
+            model.compile(optimizer=opt,
+                        loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
+                        metrics=['accuracy'])
+            small_x, small_y = self.choose_data()
+            batch_size = components["b"]
+            model.fit(small_x, small_y, epochs=5, validation_data=(self.x_test, self.y_test), batch_size=batch_size, verbose=0)
+            _, test_acc = model.evaluate(self.x_test,  self.y_test, verbose = 0)
+            del model
+            return test_acc
 
 

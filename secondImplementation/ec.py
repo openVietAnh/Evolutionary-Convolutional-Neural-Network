@@ -9,7 +9,7 @@ MIN_POINTS = 3 # Minium number of points in multipoints crossover
 MAX_POINTS = 10 # Maximum number of points in multipoints crossover
 MUTATION_RATE = 0.015
 GENE_LENGTH = 69
-READ_DATA_FILE = "SAVED_SESSION_DATA.txt" # Using file to backup data from Google Colab, run with multiple sessions
+READ_DATA_FILE = "" # Using file to backup data from Google Colab, run with multiple sessions
 # READ_DATA_FILE = "" -> first session, new initialization
 WRITE_DATA_FILE = "SAVED_SESSION_DATA.txt" # In new session, upload files containing data from previous ones
 
