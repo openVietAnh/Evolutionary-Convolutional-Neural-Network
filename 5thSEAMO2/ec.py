@@ -30,15 +30,32 @@ ACTIVATION_DICT = {
     1: "linear"
 }
 
+def random_replacement(children, population, tracker):
+    arr = random_indexes()
+    for ind in arr:
+        if children.fitness > population[ind].fitness:
+            population[ind] = children
+            return ind
+    return 0
+
+def random_indexes():
+    arr = [i for i in range(POPULATION_SIZE)]
+    for j in range(POPULATION_SIZE):
+        k = randint(0, POPULATION_SIZE - 1)
+        arr[j], arr[k] = arr[k], arr[j]
+    return arr
+
 def tournament_selection(population):
-    selected, max_fitness = None, 0
+    index, selected, max_fitness = 0, None, 0
     while selected is None:
         for i in range(TOURNAMENT_SIZE):
-            contestant = population[randint(0, POPULATION_SIZE - 1)]
+            ind = randint(0, POPULATION_SIZE - 1)
+            contestant = population[ind]
             if contestant.adjusted_fitness > max_fitness:
                 selected = contestant
+                index = ind
                 max_fitness = contestant.adjusted_fitness
-    return selected
+    return index, selected
 
 def crossover(parent1, parent2):
     points_num = randint(MIN_POINTS, MAX_POINTS)
@@ -323,7 +340,7 @@ class Population(object):
         else: # Create a population from populace read from a text file
             self.populace = args[0]  
 
-    def calculate_ajusted_fitness(self, tracker):
+    def calculate_ajusted_fitness(self, tracker, generationEnd):
         similarity_mat = [[1 for i in range(POPULATION_SIZE)] for j in range(POPULATION_SIZE)]
         for i in range(POPULATION_SIZE):
             similarity_sum = 0
@@ -335,7 +352,8 @@ class Population(object):
             similarity = 1 - (similarity_sum / (POPULATION_SIZE - 1))
             self.populace[i].adjusted_fitness = self.populace[i].fitness
             self.populace[i].adjusted_fitness *= similarity
-        tracker.similarity_matrix.append(similarity_mat)
+        if generationEnd:
+            tracker.similarity_matrix.append(similarity_mat)
 
     def print(self):
         for individual in self.populace:
@@ -360,7 +378,7 @@ for i in range(POPULATION_SIZE):
     while population.populace[i].fitness == 0:
         population.populace[i] = Individual()
         population.populace[i].evaluate()
-population.calculate_ajusted_fitness(tracker)
+population.calculate_ajusted_fitness(tracker, True)
 
 tracker.update_elitism(population.populace)
 
@@ -369,47 +387,57 @@ print("Generation 0 done")
 # Population evolution
 for i in range(1, 10):
     print("".join(list(map(str, tracker.best_individual.gene))), tracker.best_individual.fitness)
-
-    # Create parent pool for mating by tournament selection
-    pool = []
-    for j in range(POPULATION_SIZE):
-        pool.append(tournament_selection(population.populace))
-
-    # Create offsrping for next generation by crossover then mutate
-    next_generation = []
-    for j in range(0, POPULATION_SIZE, 2):
-        parent1, parent2 = pool[j], pool[j + 1]
+    for k in range(50):
+        parentInd1, parent1 = k, population.populace[k]
+        parentInd2 = k
+        while parentInd2 == k:
+            parentInd2, parent2 = tournament_selection(population.populace)
         children1, children2 = crossover(parent1, parent2)
         children1.mutate()
         children2.mutate()
-        next_generation += [children1, children2]
-    for individual in next_generation:
-        individual.evaluate()
+        children1.evaluate()
+        children2.evaluate()
+        if parent1.fitness >= parent2.fitness:
+            firstReplacement, secondReplacement = (parent1, parentInd1), (parent2, parentInd2)
+        else:
+            firstReplacement, secondReplacement = (parent2, parentInd2), (parent1, parentInd1)
+        if children1.fitness >= children2.fitness:
+            firstChildren, secondChildren = children1, children2
+        else:
+            firstChildren, secondChildren = children2, children1
+        if firstChildren.fitness < min(parent1.fitness, parent2.fitness):
+            replaced = random_replacement(firstChildren, population.populace, tracker)
+            if replaced:
+                replaced = random_replacement(secondChildren, population.populace, tracker)
+                population.calculate_ajusted_fitness(tracker, False)
+        else:
+            if firstChildren.fitness >= firstReplacement[0].fitness:
+                population.populace[firstReplacement[1]] = firstChildren
+                if secondChildren.fitness >= secondReplacement[0].fitness:
+                    population.populace[secondReplacement[1]] = secondChildren
+                else:
+                    replaced = random_replacement(secondChildren, population.populace, tracker)
+                population.calculate_ajusted_fitness(tracker, False)
+            else:
+                if firstChildren.fitness >= secondReplacement[0].fitness:
+                    population.populace[secondReplacement[1]] = firstChildren
+                    replaced = random_replacement(secondChildren, population.populace, tracker)
+                    population.calculate_ajusted_fitness(tracker, False)
 
-    # Remove the worst individual
-    worst, min_fitness = None, 1
-    for k in range(POPULATION_SIZE):
-        if next_generation[k].fitness < min_fitness:
-            worst, min_fitness = k, next_generation[k].fitness
-    del next_generation[worst]
-
-    # Add the best individual from the previous generation
-    next_generation.append(tracker.elitism())
 
     for k in range(POPULATION_SIZE - 1):
         count = 0
         for j in range(k + 1, POPULATION_SIZE):
-            if get_similarity(next_generation[k], next_generation[j]) == 1:
+            if get_similarity(population.populace[k], population.populace[j]) == 1:
                 count += 1
         if count > 0:
-            model = next_generation[k].get_str_model()
+            model = population.populace[k].get_str_model()
             if model in tracker.duplicated_set.keys():
                 tracker.duplicated_set[model] += count + 1
             else:
                 tracker.duplicated_set[model] = count + 1
 
-    population.populace = next_generation
-    population.calculate_ajusted_fitness(tracker)
+    population.calculate_ajusted_fitness(tracker, True)
     tracker.update_elitism(population.populace)
     tracker.generation_count += 1
     print("Generation", i, "done")
