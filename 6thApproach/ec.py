@@ -1,7 +1,7 @@
 from random import randint, random, sample
 from cnn import CNN
 
-POPULATION_SIZE = 26
+POPULATION_SIZE = 50
 TOURNAMENT_SIZE = 3
 MIN_POINTS = 3 # Minium number of points in multipoints crossover
 MAX_POINTS = 10 # Maximum number of points in multipoints crossover
@@ -51,7 +51,7 @@ def similarity_tournament_selection(population, ind, index):
         for i in range(TOURNAMENT_SIZE):
             contestant = population[indexes[i]]
             simi = get_similarity(ind, contestant)
-            if contestant.adjusted_fitness < min_similarity:
+            if simi < min_similarity:
                 selected = contestant
                 index = indexes[i]
                 min_similarity = simi
@@ -398,7 +398,7 @@ for i in range(1, 10):
     # Create offsrping for next generation by crossover then mutate
     next_generation = []
     for j in range(0, POPULATION_SIZE, 2):
-        parent1, parent2 = pool[j], pool[(j + 1) % 26]
+        parent1, parent2 = pool[j], pool[j + 1]
         children1, children2 = crossover(parent1, parent2)
         children1.mutate()
         children2.mutate()
@@ -411,7 +411,7 @@ for i in range(1, 10):
     for k in range(POPULATION_SIZE - 1):
         count, j = 0, k + 1
         while j < len(population.populace):
-            while j < len(population.populace) and len(population.populace) > 26 and get_similarity(population.populace[k], population.populace[j]) == 1:
+            while j < len(population.populace) and len(population.populace) > 50 and get_similarity(population.populace[k], population.populace[j]) == 1:
                 del population.populace[j]
                 count += 1
             j += 1
@@ -422,7 +422,7 @@ for i in range(1, 10):
             else:
                 tracker.duplicated_set[model] = count + 1
     
-    population.populace = population.populace[:26]
+    population.populace = population.populace[:50]
     population.calculate_ajusted_fitness(tracker)
     tracker.update_elitism(population.populace)
     tracker.generation_count += 1
