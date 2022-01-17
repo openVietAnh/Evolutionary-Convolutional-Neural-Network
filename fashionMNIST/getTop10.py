@@ -1,4 +1,4 @@
-with open("result1.txt", "r") as f:
+with open("result2.txt", "r") as f:
     data = f.readlines()
 ind = data.index("Generation 9\n")
 population = []
