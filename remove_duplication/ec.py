@@ -2,16 +2,16 @@ from random import randint, random
 from cnn import CNN
 
 POPULATION_SIZE = 25
-MAXIMUM_GENERATION = 30
+MAXIMUM_GENERATION = 20
 STOP_CONDITION = 30 # Number of generations without improvements
 TOURNAMENT_SIZE = 3
 MIN_POINTS = 3 # Minium number of points in multipoints crossover
 MAX_POINTS = 10 # Maximum number of points in multipoints crossover
 MUTATION_RATE = 0.015
-GENE_LENGTH = 69
-READ_DATA_FILE = "" # Using file to backup data from Google Colab, run with multiple sessions
-# READ_DATA_FILE = "" -> first session, new initialization
-WRITE_DATA_FILE = "SAVED_SESSION_DATA.txt" # In new session, upload files containing data from previous ones
+GENE_LENGTH = 67
+# READ_DATA_FILE = "" # Using file to backup data from Google Colab, run with multiple sessions
+# # READ_DATA_FILE = "" -> first session, new initialization
+# WRITE_DATA_FILE = "SAVED_SESSION_DATA.txt" # In new session, upload files containing data from previous ones
 
 # Dictionaries to convert genotype to phenotype
 LEARNING_RATE_DICT = {
@@ -22,7 +22,7 @@ LEARNING_RATE_DICT = {
 }
 
 DENSE_TYPE_DICT = {
-    0: "recurrent", 1: "LSTM", 2: "GRU", 3: "feed-forward"
+    0: "recurrent", 1: "feed-forward"
 }
 
 REGULARIZATION_DICT = {
@@ -177,44 +177,44 @@ class Individual(object):
     def get_dense_type(self, layers_num):
         result = []
         for i in range(layers_num):
-            binary = self.gene[45 + i * 9: 45 + i * 9 + 2]
+            binary = self.gene[45 + i * 8: 45 + i * 8 + 1]
             result.append(DENSE_TYPE_DICT[binary_to_decimal(binary)])
         return result
 
     def get_neurons_num(self, layers_num):
         result = []
         for i in range(layers_num):
-            binary = self.gene[47 + i * 9: 47 + i * 9 + 3]
+            binary = self.gene[46 + i * 8: 46 + i * 8 + 3]
             result.append(2 ** (binary_to_decimal(binary) + 3))
         return result
 
     def get_dense_activation(self, layers_num):
         result = []
         for i in range(layers_num):
-            binary = self.gene[50 + i * 9: 50 + i * 9 + 1]
+            binary = self.gene[49 + i * 8: 49 + i * 8 + 1]
             result.append(ACTIVATION_DICT[binary_to_decimal(binary)])
         return result
 
     def get_regularization(self, layers_num):
         result = []
         for i in range(layers_num):
-            binary = self.gene[51 + i * 9: 51 + i * 9 + 2]
+            binary = self.gene[50 + i * 8: 50 + i * 8 + 2]
             result.append(binary_to_decimal(binary))
         return result
 
     def get_dropout(self, layers_num):
         result = []
         for i in range(layers_num):
-            binary = self.gene[53 + i * 9: 53 + i * 9 + 1]
+            binary = self.gene[52 + i * 8: 52 + i * 8 + 1]
             result.append(binary_to_decimal(binary) / 2)
         return result
 
     def get_optimizer(self):
-        binary = self.gene[63: 66]
+        binary = self.gene[61: 64]
         return binary_to_decimal(binary)
 
     def get_learning_rate(self):
-        binary = self.gene[66: 69]
+        binary = self.gene[64: 67]
         return LEARNING_RATE_DICT[binary_to_decimal(binary)]
 
     def get_components(self):
@@ -311,73 +311,73 @@ def get_individual_info_from_string(line):
     adjusted_fitness = float(items[2])
     return gene, fitness, adjusted_fitness
 
-def read_data_from_file(file_name):
-    population = None
-    tracker = None
-    with open(READ_DATA_FILE, "r") as f:
-        data = f.readlines()
+# def read_data_from_file(file_name):
+#     population = None
+#     tracker = None
+#     with open(READ_DATA_FILE, "r") as f:
+#         data = f.readlines()
 
-    populace = []
-    for line in data[1: POPULATION_SIZE + 1]:
-        gene, fitness, adjusted_fitness = get_individual_info_from_string(line)
-        populace.append(Individual(gene, fitness, adjusted_fitness))
-    population = Population(populace)
+#     populace = []
+#     for line in data[1: POPULATION_SIZE + 1]:
+#         gene, fitness, adjusted_fitness = get_individual_info_from_string(line)
+#         populace.append(Individual(gene, fitness, adjusted_fitness))
+#     population = Population(populace)
 
-    tracker_info_index = data.index("TRACKER INFO\n")
-    generation_count = int(data[tracker_info_index + 1])
-    best_fitness = list(map(float, data[tracker_info_index + 2].split()))
-    tracker = Tracker(generation_count, best_fitness)
-    for i in range(0, generation_count):
-        line_ind = data.index("\tGeneration " + str(i) + "\n")
-        generation = data[line_ind + 1: line_ind + POPULATION_SIZE + 1]
-        tracker.population_history.append(generation)
+#     tracker_info_index = data.index("TRACKER INFO\n")
+#     generation_count = int(data[tracker_info_index + 1])
+#     best_fitness = list(map(float, data[tracker_info_index + 2].split()))
+#     tracker = Tracker(generation_count, best_fitness)
+#     for i in range(0, generation_count):
+#         line_ind = data.index("\tGeneration " + str(i) + "\n")
+#         generation = data[line_ind + 1: line_ind + POPULATION_SIZE + 1]
+#         tracker.population_history.append(generation)
 
-    return population, tracker
+#     return population, tracker
 
-def save_data_to_file(population, tracker):
-    text_lines = []
-    text_lines.append("CURRENT POPULATION\n")
-    for individual in population.populace:
-        text_lines.append(" ".join(["".join(map(str, individual.gene)), str(individual.fitness), str(individual.adjusted_fitness)]) + "\n")
-    text_lines.append("TRACKER INFO\n")
-    text_lines.append(str(tracker.generation_count) + "\n")
-    text_lines.append(" ".join(map(str, tracker.best_fitness)) + "\n")
-    text_lines.append("POPULATION HISTORY\n")
-    for index, generation in enumerate(tracker.population_history):
-        text_lines.append("\tGeneration " + str(index) + "\n")
-        for individual in generation:
-            text_lines.append(individual)
+# def save_data_to_file(population, tracker):
+#     text_lines = []
+#     text_lines.append("CURRENT POPULATION\n")
+#     for individual in population.populace:
+#         text_lines.append(" ".join(["".join(map(str, individual.gene)), str(individual.fitness), str(individual.adjusted_fitness)]) + "\n")
+#     text_lines.append("TRACKER INFO\n")
+#     text_lines.append(str(tracker.generation_count) + "\n")
+#     text_lines.append(" ".join(map(str, tracker.best_fitness)) + "\n")
+#     text_lines.append("POPULATION HISTORY\n")
+#     for index, generation in enumerate(tracker.population_history):
+#         text_lines.append("\tGeneration " + str(index) + "\n")
+#         for individual in generation:
+#             text_lines.append(individual)
 
-    with open(WRITE_DATA_FILE, "w") as f:
-        f.writelines(text_lines)
+#     with open(WRITE_DATA_FILE, "w") as f:
+#         f.writelines(text_lines)
 
 cnn = CNN()
 
-if READ_DATA_FILE == "":
-    population = Population()
+# if READ_DATA_FILE == "":
+population = Population()
 
-    # Remove all invalid individual (invalid CNN model structure)
-    for i in range(POPULATION_SIZE):
+# Remove all invalid individual (invalid CNN model structure)
+for i in range(POPULATION_SIZE):
+    population.populace[i].evaluate()
+    while population.populace[i].fitness == 0:
+        # print("Re-initialize")
+        population.populace[i] = Individual()
         population.populace[i].evaluate()
-        while population.populace[i].fitness == 0:
-            # print("Re-initialize")
-            population.populace[i] = Individual()
-            population.populace[i].evaluate()
-    population.calculate_ajusted_fitness()
+population.calculate_ajusted_fitness()
 
-    tracker = Tracker()
-    tracker.update_elitism(population.populace)
-else:
-    population, tracker = read_data_from_file(READ_DATA_FILE)
+tracker = Tracker()
+tracker.update_elitism(population.populace)
+# else:
+#     population, tracker = read_data_from_file(READ_DATA_FILE)
 
 print("Generation " + str(tracker.generation_count))
 population.print()
-tracker.print()
+# tracker.print()
 
 # Population evolution
 # for i in range(tracker.generation_count, tracker.generation_count + 2):
 for i in range(1, MAXIMUM_GENERATION):
-    print("Generation", i)
+    print("Generation", i + 1)
 
     # Create parent pool for mating by tournament selection
     pool = []
@@ -408,9 +408,11 @@ for i in range(1, MAXIMUM_GENERATION):
     tracker.update_elitism(population.populace)
     tracker.generation_count += 1
 
-    # Got 30 generations without improvements
-    if tracker.stop_condition():
-        break
+    population.print()
 
-save_data_to_file(population, tracker)
+    # Got 30 generations without improvements
+    # if tracker.stop_condition():
+    #     break
+
+# save_data_to_file(population, tracker)
 tracker.print()
