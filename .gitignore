@@ -108,3 +108,6 @@ __pycache__/
 
 # Model predict result
 *predictResult*/
+
+# Cifar-10 datasets
+*/cifar-10-batches-py/*
