@@ -230,7 +230,7 @@ class CNN(object):
         if not self.is_valid_model(components["cs"], components["cp"]):
             return 0
         else:
-            # return random.random()
+            return random.random()
             model = self.build_model(components)
             opt = self.get_optimizers(components["f"], components["n"])
             model.compile(optimizer=opt,
